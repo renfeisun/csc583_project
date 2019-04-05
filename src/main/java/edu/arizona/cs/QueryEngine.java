@@ -23,53 +23,34 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.RAMDirectory;
+import org.apache.lucene.store.FSDirectory;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.io.File;
-import java.io.IOException;
-import java.util.Scanner;
+import java.nio.file.Paths;
+
 
 public class QueryEngine {
-    private String input_file ="";
     private StandardAnalyzer analyzer = null;    
     private IndexWriter writer = null;    
     private Directory index = null;
     private Query query = null;
     private IndexSearcher searcher = null;
+    private SourceProcessor sp;
     
     public QueryEngine(String inputFileObj){
         try{
-            input_file =inputFileObj;
             analyzer = new StandardAnalyzer();
-            index = new RAMDirectory();
+            //index = FSDirectory.open(Paths.get("./index"));
+            index = FSDirectory.open(Paths.get("./index"));
             writer = new IndexWriter(index, new IndexWriterConfig(analyzer));      
-            index_gen();
+            sp = new SourceProcessor(inputFileObj);
+        	sp.index_generate(writer);
             searcher = new IndexSearcher(DirectoryReader.open(index));
         } catch (Exception ex){
             System.out.println(ex.getMessage());    
         }
 
-    }
-
-    private void index_gen() throws IOException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(classLoader.getResource(input_file).getFile());
-        try (Scanner scanner = new Scanner(file)) {
-            while (scanner.hasNextLine()) {
-                Document doc = new Document();
-                String line = scanner.nextLine();
-                String docID = line.split(" ")[0];            
-                String content = line.replace(docID+" ", "");
-                doc.add(new StringField("docid", docID, Field.Store.YES));
-                doc.add(new TextField("contents", content, Field.Store.YES));
-                writer.addDocument(doc);
-            }
-            writer.close();
-            scanner.close();
-        } catch (Exception ex){
-            System.out.println(ex.getMessage());    
-        }
     }
 
     private void query_gen(String[] query_list, int type){
@@ -119,7 +100,8 @@ public class QueryEngine {
         List<ResultClass>  ans=new ArrayList<ResultClass>();
         int hitsPerPage = 10;        
         TopDocs docs = null;
-        try{        
+        try{
+        	System.out.println(query);
             docs = searcher.search(query, hitsPerPage);
             ScoreDoc[] hits = docs.scoreDocs;
 
@@ -140,62 +122,13 @@ public class QueryEngine {
     }
 
     public static void main(String[] args ) {
-
-        try {
-
-            String fileName = "input.txt";
-            System.out.println("********Welcome to  Homework 3!");
-            String[] query13a = {"information", "retrieval"};
-            QueryEngine objQueryEngine = new QueryEngine(fileName);
-            List<ResultClass> ans1 = objQueryEngine.runQ1(query13a);
-            List<ResultClass> ans2 = objQueryEngine.runQ13a(query13a);
-            List<ResultClass> ans3 = objQueryEngine.runQ13b(query13a);
-            List<ResultClass> ans4 = objQueryEngine.runQ13c(query13a);
-            List<ResultClass> ans5 = objQueryEngine.runQ14(query13a);
-            List<ResultClass> ans6 = objQueryEngine.runQ13c(query13a);
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }
+    	QueryEngine engine = new QueryEngine("input.txt");
     }
 
-
-    public List<ResultClass> runQ1(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
-        try{        
-            query_gen(query, 4);
-            this.searcher.setSimilarity(new BM25Similarity());    
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }       
-        return search();
-    }
     public List<ResultClass> runQ13a(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
         try{        
-            query_gen(query, 1);
+            query_gen(query, 5);
             this.searcher.setSimilarity(new BM25Similarity());  
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }       
-        return search();
-    }
-
-    public List<ResultClass> runQ13b(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
-        try{        
-            query_gen(query, 2);
-            this.searcher.setSimilarity(new BM25Similarity()); 
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }       
-        return search();
-    }
-
-    public List<ResultClass> runQ13c(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
-        try{        
-            query_gen(query, 3);
-            this.searcher.setSimilarity(new BM25Similarity());     
         }
         catch (Exception ex) {
             System.out.println(ex.getMessage());
