@@ -13,6 +13,10 @@ public class ResultClass {
         this.doc_score = doc_score;
     }
 
+    public String getDocName() {
+    	return DocName.get("docid").replaceAll("\\]", "").replaceAll("\\[", "");
+    }
+    
     public String toString(){
     	return "DocName: " + DocName.get("docid") + " DocScore: " + doc_score;
     }

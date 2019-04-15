@@ -5,6 +5,9 @@ import edu.stanford.nlp.simple.*;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.BM25Similarity;
@@ -37,15 +40,17 @@ public class QueryEngine {
     private Query query = null;
     private IndexSearcher searcher = null;
     private SourceProcessor sp;
+    private QueryProcessor qp;
     
-    public QueryEngine(String inputFileObj){
+    public QueryEngine(String inputFileObj, String questions){
         try{
             analyzer = new StandardAnalyzer();
-            //index = FSDirectory.open(Paths.get("./index"));
             index = FSDirectory.open(Paths.get("./index"));
             writer = new IndexWriter(index, new IndexWriterConfig(analyzer));      
             sp = new SourceProcessor(inputFileObj);
         	sp.index_generate(writer);
+        	qp = new QueryProcessor(questions);
+        	qp.queryKeyGetenerate();
             searcher = new IndexSearcher(DirectoryReader.open(index));
         } catch (Exception ex){
             System.out.println(ex.getMessage());    
@@ -122,10 +127,45 @@ public class QueryEngine {
     }
 
     public static void main(String[] args ) {
-    	QueryEngine engine = new QueryEngine("input.txt");
+    	QueryEngine engine = new QueryEngine("input.txt", "questions.txt");
+    	
+    	try {
+			int[] score = engine.searchAll();
+			System.out.println("First Hit: " + score[0] * 100 / engine.qp.totalQuery() + "%");
+			System.out.println("Top Hit: " + score[1] * 100 / engine.qp.totalQuery() + "%");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
-    public List<ResultClass> runQ13a(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
+    public int[] searchAll() throws java.io.FileNotFoundException,java.io.IOException {
+    	HashMap<String, LinkedList<String[]>> queryKey = qp.getQueryKey();
+    	int[] resultScore = new int[2];
+    	resultScore[0] = 0;
+    	resultScore[1] = 0;
+    	for(String key : queryKey.keySet()) {
+    		LinkedList<String[]> querys = queryKey.get(key);
+    		for(String[] query : querys) {
+    			for(String str : query)
+    				System.out.print(str + ' ');
+    			System.out.println();
+    			query_gen(query, 5);
+    			List<ResultClass> ans = search();
+    			for(ResultClass an : ans) {
+    				if(an.getDocName().equals(key)) {
+    					resultScore[1]++;
+    				}
+    			}
+    			if(!ans.isEmpty() && ans.get(0).getDocName().equals(key)) {
+    				resultScore[0]++;
+    			}
+    		}
+    	}
+    	return resultScore;
+    }
+    
+    public List<ResultClass> search(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
         try{        
             query_gen(query, 5);
             this.searcher.setSimilarity(new BM25Similarity());  
