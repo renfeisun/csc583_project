@@ -47,8 +47,8 @@ public class QueryEngine {
             analyzer = new WhitespaceAnalyzer();
             index = FSDirectory.open(Paths.get("./index"));
             writer = new IndexWriter(index, new IndexWriterConfig(analyzer));      
-            sp = new SourceProcessor(inputFileObj);
-        	sp.index_generate(writer);
+            //sp = new SourceProcessor(inputFileObj);
+        	//sp.index_generate(writer);
         	qp = new QueryProcessor(questions);
         	qp.queryKeyGetenerate();
             searcher = new IndexSearcher(DirectoryReader.open(index));
@@ -70,11 +70,8 @@ public class QueryEngine {
                 	fields[i] = "categories";
                 	querys[i] = categories[i-query_list.length];
                 }
-                System.out.println(String.join(" ", querys));
-                //new MultiFieldQueryParser( new String[] {"contents", "categories"}, analyzer);
-				
                 query = MultiFieldQueryParser.parse(querys, fields, analyzer);
-                //query = new QueryParser("contents", analyzer).parse(querystr);
+                //query = new QueryParser("contents", analyzer).parse(String.join(" ", query_list));
         }
         catch (Exception ex){
             System.out.println(ex.getMessage());    

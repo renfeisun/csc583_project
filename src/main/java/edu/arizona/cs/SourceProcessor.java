@@ -30,8 +30,11 @@ public class SourceProcessor {
 		ClassLoader classLoader = getClass().getClassLoader();
 		File dirc = new File(classLoader.getResource(this.corpusDir).getFile());
 		try {
+			int index = 0;
+			System.out.print("Start");
 			for (File file : dirc.listFiles()) {
 				HashMap<String, String[]> pages = readFile(file);
+				System.out.print("\rFinshied " + index + "/80");
 				for(String title : pages.keySet()) {
 					String contents[] = pages.get(title);
 					Document doc = new Document();
@@ -40,6 +43,7 @@ public class SourceProcessor {
 	                doc.add(new TextField("categories", contents[0], Field.Store.YES));
 	                writer.addDocument(doc);
 				}
+				index++;
 			}
 			writer.close();
 		} catch (Exception ex) {

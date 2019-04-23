@@ -1,6 +1,5 @@
 target/
-index/
-*index/
+_index_*/
 .classpath
 .project
 .settings/
