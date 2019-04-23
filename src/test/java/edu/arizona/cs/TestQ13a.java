@@ -12,19 +12,7 @@ public class TestQ13a {
 		String questions = "input.txt";
 
 		QueryEngine objQueryEngine = new QueryEngine(contents, questions);
-		try {
 
-			String[] common_query = { "Not", "to", "be", "confused", "with", "karma,", "krama", "is", "a", "popular",
-					"accessory", "sold", "in", "cambodia;", "the", "word", "means", "\"scarf\"", "in", "this",
-					"national", "language", "of", "Cambodia" };
-			List<ResultClass> ans13a = objQueryEngine.search(common_query);
-			for (ResultClass ans : ans13a) {
-				System.out.println(ans);
-			}
-
-		} catch (java.io.IOException ex) {
-			System.out.println(ex.getMessage());
-		}
 
 	}
 	

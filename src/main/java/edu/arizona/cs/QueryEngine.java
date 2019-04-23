@@ -1,8 +1,7 @@
 package edu.arizona.cs;
 
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import edu.stanford.nlp.simple.*;
-
 import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +18,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -34,7 +34,7 @@ import java.nio.file.Paths;
 
 
 public class QueryEngine {
-    private StandardAnalyzer analyzer = null;    
+    private WhitespaceAnalyzer analyzer = null;    
     private IndexWriter writer = null;    
     private Directory index = null;
     private Query query = null;
@@ -44,7 +44,7 @@ public class QueryEngine {
     
     public QueryEngine(String inputFileObj, String questions){
         try{
-            analyzer = new StandardAnalyzer();
+            analyzer = new WhitespaceAnalyzer();
             index = FSDirectory.open(Paths.get("./index"));
             writer = new IndexWriter(index, new IndexWriterConfig(analyzer));      
             sp = new SourceProcessor(inputFileObj);
@@ -58,42 +58,23 @@ public class QueryEngine {
 
     }
 
-    private void query_gen(String[] query_list, int type){
+    private void query_gen(String[] query_list, String[] categories){
         try{
-            switch(type){
-                case 1:
-                    {
-                        String querystr = "contents:" + query_list[0] + " AND contents:" + query_list[1];
-                        query = new QueryParser("", analyzer).parse(querystr);
-                        break;
-                    }
-                case 2:
-                    {
-                        String querystr = "contents:" + query_list[0] + "AND NOT contents:" + query_list[1];
-                        query = new QueryParser("", analyzer).parse(querystr);
-                        break;
-                    }
-                case 3:
-                    {
-                        String querystr = "contents:" + "\"" + String.join(" ", query_list) + "\"" + "~1";
-                        query = new QueryParser("", analyzer).parse(querystr);
-                        break;
-                    }
-                case 4:
-                    {
-                        String querystr = "contents:" + query_list[0] + " OR contents:" + query_list[1];
-                        query = new QueryParser("", analyzer).parse(querystr);
-                        break;
-                    }
-                case 5:
-                    {
-                        String querystr = String.join(" ", query_list);
-                        query = new QueryParser("contents", analyzer).parse(querystr);
-                        break;
-                    }    
-                default:
-                    break;
-            }
+                String[] fields = new String[query_list.length + categories.length];
+                String[] querys = new String[query_list.length + categories.length];
+                for(int i = 0; i < query_list.length; i++) {
+                	fields[i] = "contents";
+                	querys[i] = query_list[i];
+                }
+                for(int i = query_list.length; i < fields.length; i++) {
+                	fields[i] = "categories";
+                	querys[i] = categories[i-query_list.length];
+                }
+                System.out.println(String.join(" ", querys));
+                //new MultiFieldQueryParser( new String[] {"contents", "categories"}, analyzer);
+				
+                query = MultiFieldQueryParser.parse(querys, fields, analyzer);
+                //query = new QueryParser("contents", analyzer).parse(querystr);
         }
         catch (Exception ex){
             System.out.println(ex.getMessage());    
@@ -127,7 +108,7 @@ public class QueryEngine {
     }
 
     public static void main(String[] args ) {
-    	QueryEngine engine = new QueryEngine("input.txt", "questions.txt");
+    	QueryEngine engine = new QueryEngine("wiki", "question");
     	
     	try {
 			int[] score = engine.searchAll();
@@ -140,17 +121,15 @@ public class QueryEngine {
     }
 
     public int[] searchAll() throws java.io.FileNotFoundException,java.io.IOException {
-    	HashMap<String, LinkedList<String[]>> queryKey = qp.getQueryKey();
+    	HashMap<String, LinkedList<QueryClass>> queryKey = qp.getQueryKey();
     	int[] resultScore = new int[2];
     	resultScore[0] = 0;
     	resultScore[1] = 0;
     	for(String key : queryKey.keySet()) {
-    		LinkedList<String[]> querys = queryKey.get(key);
-    		for(String[] query : querys) {
-    			for(String str : query)
-    				System.out.print(str + ' ');
-    			System.out.println();
-    			query_gen(query, 5);
+    		LinkedList<QueryClass> querys = queryKey.get(key);
+    		for(QueryClass query : querys) {
+    			System.out.println(key);
+    			query_gen(query.getQuestions(), query.getCategory());
     			List<ResultClass> ans = search();
     			for(ResultClass an : ans) {
     				if(an.getDocName().equals(key)) {
@@ -163,27 +142,5 @@ public class QueryEngine {
     		}
     	}
     	return resultScore;
-    }
-    
-    public List<ResultClass> search(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
-        try{        
-            query_gen(query, 5);
-            this.searcher.setSimilarity(new BM25Similarity());  
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }       
-        return search();
-    }
-
-    public List<ResultClass> runQ14(String[] query) throws java.io.FileNotFoundException,java.io.IOException {
-        try{        
-            query_gen(query, 5);
-            this.searcher.setSimilarity(new ClassicSimilarity());
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-        }       
-        return search();
     }
 }

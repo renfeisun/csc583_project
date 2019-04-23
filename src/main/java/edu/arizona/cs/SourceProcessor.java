@@ -13,52 +13,67 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 
+import edu.stanford.nlp.simple.*;
+
 /**
  * @author RenfeiSun
  *
  */
 public class SourceProcessor {
-	private String contentTable;
+	private String corpusDir;
 
-	public SourceProcessor(String contentTable) {
-		this.contentTable = contentTable;
+	public SourceProcessor(String corpusDir) {
+		this.corpusDir = corpusDir;
 	}
 
 	public void index_generate(IndexWriter writer) {
 		ClassLoader classLoader = getClass().getClassLoader();
-		File filesName = new File(classLoader.getResource(this.contentTable).getFile());
-		try (Scanner scanner = new Scanner(filesName)) {
-			while (scanner.hasNextLine()) {
-				File file = new File(classLoader.getResource(scanner.nextLine().trim()).getFile());
-				HashMap<String, String> pages = readFile(file);
+		File dirc = new File(classLoader.getResource(this.corpusDir).getFile());
+		try {
+			for (File file : dirc.listFiles()) {
+				HashMap<String, String[]> pages = readFile(file);
 				for(String title : pages.keySet()) {
-					String content = pages.get(title);
+					String contents[] = pages.get(title);
 					Document doc = new Document();
 					doc.add(new StringField("docid", title, Field.Store.YES));
-	                doc.add(new TextField("contents", content, Field.Store.YES));
+	                doc.add(new TextField("contents", contents[1], Field.Store.YES));
+	                doc.add(new TextField("categories", contents[0], Field.Store.YES));
 	                writer.addDocument(doc);
 				}
 			}
-			scanner.close();
 			writer.close();
 		} catch (Exception ex) {
 			System.err.println(ex.getMessage());
 		}
 	}
 
-	private HashMap<String, String> readFile(File filesName) {
+	private HashMap<String, String[]> readFile(File filesName) {
 		String title = "";
 		String content = "";
-		HashMap<String, String> pages = new HashMap<>();
+		String categories ="";
+		HashMap<String, String[]> pages = new HashMap<>();
 		try (Scanner scanner = new Scanner(filesName)) {
 			while (scanner.hasNextLine()) {
 				String str = scanner.nextLine();
 				if (str.contains("[[") && str.contains("]]") && str.startsWith("[[")) {
-					pages.put(title, content);
-					title = str.replaceAll("\\[tpl].*?\\[/tpl]", "").trim();
+					String[] c = new String[2];
+					c[0] = categories;
+					c[1] = content;
+					pages.put(title, c);
+					title = str.replaceAll("\\[tpl].*?\\[/tpl]", "").replaceAll("\\]", "").replaceAll("\\[", "").trim();
+					categories="";
 					content = "";
 				} else {
-					content += str.replaceAll("\\[tpl].*?\\[/tpl]", "").trim();
+					String temp = str.replaceAll("\\[tpl].*?\\[/tpl]", "").replaceAll("[^ a-zA-Z\\d]", " ").trim();
+					if(!temp.equals("")) {
+						Sentence stc = new Sentence(temp);
+						String lemma = String.join(" ", stc.lemmas());
+						if(temp.startsWith("CATEGORIES:"))
+							categories = lemma;
+						else
+							content += lemma;
+					}
+					
 				}
 			}
 			scanner.close();

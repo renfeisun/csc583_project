@@ -14,7 +14,7 @@ public class ResultClass {
     }
 
     public String getDocName() {
-    	return DocName.get("docid").replaceAll("\\]", "").replaceAll("\\[", "");
+    	return DocName.get("docid");
     }
     
     public String toString(){
