@@ -3,6 +3,7 @@ _index_*/
 .classpath
 .project
 .settings/
+*.py
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.versionsBackup

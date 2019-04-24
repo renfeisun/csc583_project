@@ -48,9 +48,9 @@ public class QueryEngine {
             index = FSDirectory.open(Paths.get("./index"));
             writer = new IndexWriter(index, new IndexWriterConfig(analyzer));      
             //sp = new SourceProcessor(inputFileObj);
-        	//sp.index_generate(writer);
-        	qp = new QueryProcessor(questions);
-        	qp.queryKeyGetenerate();
+            //sp.index_generate(writer);
+            qp = new QueryProcessor(questions);
+            qp.queryKeyGetenerate();
             searcher = new IndexSearcher(DirectoryReader.open(index));
         } catch (Exception ex){
             System.out.println(ex.getMessage());    
@@ -84,7 +84,7 @@ public class QueryEngine {
         int hitsPerPage = 10;        
         TopDocs docs = null;
         try{
-        	System.out.println(query);
+            System.out.println(query);
             docs = searcher.search(query, hitsPerPage);
             ScoreDoc[] hits = docs.scoreDocs;
 
@@ -108,7 +108,7 @@ public class QueryEngine {
     	QueryEngine engine = new QueryEngine("wiki", "question");
     	
     	try {
-			int[] score = engine.searchAll();
+			double[] score = engine.searchAll();
 			System.out.println("First Hit: " + score[0] * 100 / engine.qp.totalQuery() + "%");
 			System.out.println("Top Hit: " + score[1] * 100 / engine.qp.totalQuery() + "%");
 		} catch (IOException e) {
@@ -117,20 +117,22 @@ public class QueryEngine {
 		}
     }
 
-    public int[] searchAll() throws java.io.FileNotFoundException,java.io.IOException {
-    	HashMap<String, LinkedList<QueryClass>> queryKey = qp.getQueryKey();
-    	int[] resultScore = new int[2];
-    	resultScore[0] = 0;
-    	resultScore[1] = 0;
+    public double [] searchAll() throws java.io.FileNotFoundException,java.io.IOException {
+	//this.searcher.setSimilarity(new ClassicSimilarity());
+	this.searcher.setSimilarity(new BM25Similarity());
+	HashMap<String, LinkedList<QueryClass>> queryKey = qp.getQueryKey();
+    	double [] resultScore = new double[2];
+    	resultScore[0] = 0.0;
+    	resultScore[1] = 0.0;
     	for(String key : queryKey.keySet()) {
     		LinkedList<QueryClass> querys = queryKey.get(key);
     		for(QueryClass query : querys) {
     			System.out.println(key);
     			query_gen(query.getQuestions(), query.getCategory());
     			List<ResultClass> ans = search();
-    			for(ResultClass an : ans) {
-    				if(an.getDocName().equals(key)) {
-    					resultScore[1]++;
+    			for(int i = 0; i < ans.size(); i++) {
+    				if(ans.get(i).getDocName().equals(key)) {
+    					resultScore[1] += 1.0 / (i+1);
     				}
     			}
     			if(!ans.isEmpty() && ans.get(0).getDocName().equals(key)) {

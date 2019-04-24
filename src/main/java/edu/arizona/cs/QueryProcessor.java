@@ -54,7 +54,7 @@ public class QueryProcessor {
 			System.err.println(ex.getMessage());
 		}
 	}
-	
+
 	private void pushIntoMap(String category, String question, String answer) {
 		String[] query = question.split(" ");
 		String[] cat = category.split(" ");
