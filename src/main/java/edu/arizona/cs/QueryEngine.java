@@ -4,6 +4,7 @@ import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import java.io.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -30,9 +31,13 @@ import org.apache.lucene.store.FSDirectory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.nio.file.Paths;
 
 public class QueryEngine {
+
+	public static boolean isGrad = false;
+
 	private WhitespaceAnalyzer analyzer = null;
 	private IndexWriter writer = null;
 	private Directory index = null;
@@ -75,7 +80,8 @@ public class QueryEngine {
 				fields[i] = "categories";
 				querys[i] = categories[i - query_list.length - categories.length];
 			}
-			//query = new QueryParser("", analyzer).parse(String.join(" ", query_list) + String.join("^1.5 ", categories));
+			// query = new QueryParser("", analyzer).parse(String.join(" ",
+			// query_list) + String.join("^1.5 ", categories));
 			query = MultiFieldQueryParser.parse(querys, fields, analyzer);
 		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
@@ -89,7 +95,7 @@ public class QueryEngine {
 			String[] querys = new String[query_list.length - 1 + categories.length + categories.length];
 			for (int i = 0; i < query_list.length - 1; i++) {
 				fields[i] = "contents";
-				querys[i] = query_list[i] + " " + query_list[i+1] + "~100";
+				querys[i] = "\"" + query_list[i] + " " + query_list[i + 1] + "\"" + "~400";
 			}
 
 			for (int i = query_list.length - 1; i < query_list.length - 1 + categories.length; i++) {
@@ -101,7 +107,8 @@ public class QueryEngine {
 				fields[i] = "categories";
 				querys[i] = categories[i - query_list.length + 1 - categories.length];
 			}
-			//query = new QueryParser("", analyzer).parse(String.join(" ", query_list) + String.join("^1.5 ", categories));
+			// query = new QueryParser("", analyzer).parse(String.join(" ",
+			// query_list) + String.join("^1.5 ", categories));
 			query = MultiFieldQueryParser.parse(querys, fields, analyzer);
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -118,7 +125,7 @@ public class QueryEngine {
 			docs = searcher.search(query, hitsPerPage);
 			ScoreDoc[] hits = docs.scoreDocs;
 
-			System.out.println("Found " + hits.length + " hits.");
+			// System.out.println("Found " + hits.length + " hits.");
 			for (int i = 0; i < hits.length; ++i) {
 				Document d = searcher.doc(hits[i].doc);
 				ans.add(new ResultClass(d, hits[i].score));
@@ -126,14 +133,15 @@ public class QueryEngine {
 		} catch (Exception ex) {
 			System.out.println(ex.getMessage());
 		}
-		for (int i = 0; i < ans.size(); i++) {
-			System.out.println(ans.get(i));
-		}
+		// for (int i = 0; i < ans.size(); i++) {
+		// System.out.println(ans.get(i));
+		// }
 		return ans;
 
 	}
 
 	public static void main(String[] args) {
+		isGrad = args[1].equals("1") ? true : false;
 		QueryEngine engine = new QueryEngine("wiki", "question");
 
 		try {
@@ -157,16 +165,47 @@ public class QueryEngine {
 			LinkedList<QueryClass> querys = queryKey.get(key);
 			for (QueryClass query : querys) {
 				System.out.println(key);
-				query_pair(query.getQuestions(), query.getCategory());
-				//query_gen(query.getQuestions(), query.getCategory());
+				query_gen(query.getQuestions(), query.getCategory());
 				List<ResultClass> ans = search();
-				for (int i = 0; i < ans.size(); i++) {
-					if (ans.get(i).getDocName().equals(key)) {
-						resultScore[1] += 1.0 / (i + 1);
+				ArrayList<ResultClass> result = new ArrayList<>();
+				if (!isGrad) {
+					result.addAll(ans);
+				} else {
+					query_pair(query.getQuestions(), query.getCategory());
+					List<ResultClass> ans2 = search();
+					for (int i = 0; i < ans.size(); i++) {
+						boolean flag = true;
+						for (int j = 0; j < ans2.size(); j++) {
+							if (ans.get(i).getDocName().equals(ans2.get(j).getDocName())) {
+								ResultClass temp = new ResultClass(ans.get(i).DocName,
+										ans.get(i).getScore() + ans2.get(j).getScore());
+								result.add(temp);
+								flag = false;
+								break;
+							}
+						}
+						if (flag)
+							result.add(ans.get(i));
+					}
+					for (int i = 0; i < ans2.size(); i++) {
+						boolean flag = true;
+						for (int j = 0; j < ans.size(); j++) {
+							if (ans.get(j).getDocName().equals(ans2.get(i).getDocName())) {
+								flag = false;
+								break;
+							}
+						}
+						if (flag)
+							result.add(ans2.get(i));
 					}
 				}
-				if (!ans.isEmpty() && ans.get(0).getDocName().equals(key)) {
-					resultScore[0]++;
+				Collections.sort(result);
+				for (int i = 0; i < result.size() && i < 10; i++) {
+					if (i == 0 && result.get(i).getDocName().equals(key))
+						resultScore[0]++;
+					if (result.get(i).getDocName().equals(key))
+						resultScore[1] += 1.0 / (i + 1);
+					System.out.println(result.get(i));
 				}
 			}
 		}

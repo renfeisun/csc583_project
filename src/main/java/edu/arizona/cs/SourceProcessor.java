@@ -10,7 +10,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -26,7 +25,8 @@ import edu.stanford.nlp.simple.*;
 public class SourceProcessor {
 	private String corpusDir;
 	private ArrayList<String> stopWordsList;
-	private final String[] stopWords = {"i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "am", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now"};
+	private final String[] stopWords = { "a", "an", "the", "and", "but", "if", "of", "at", "by", "for", "with", "about",
+			"to", "from", "up", "down", "in", "out", "on", "off", "over", "under" };
 
 	public SourceProcessor(String corpusDir) {
 		this.corpusDir = corpusDir;
@@ -41,13 +41,13 @@ public class SourceProcessor {
 			System.out.print("Start");
 			for (File file : dirc.listFiles()) {
 				HashMap<String, String[]> pages = readFile(file);
-				for(String title : pages.keySet()) {
+				for (String title : pages.keySet()) {
 					String contents[] = pages.get(title);
 					Document doc = new Document();
 					doc.add(new StringField("docid", title, Field.Store.YES));
-	                doc.add(new TextField("contents", contents[1], Field.Store.YES));
-	                doc.add(new TextField("categories", contents[0], Field.Store.YES));
-	                writer.addDocument(doc);
+					doc.add(new TextField("contents", contents[1], Field.Store.YES));
+					doc.add(new TextField("categories", contents[0], Field.Store.YES));
+					writer.addDocument(doc);
 				}
 				index++;
 				System.out.println("Finshied " + index + "/80");
@@ -58,10 +58,10 @@ public class SourceProcessor {
 		}
 	}
 
-	private String removeStopWords(List<String> list){
+	private String removeStopWords(List<String> list) {
 		String str = "";
-		for(String lemma : list){
-			if(!stopWordsList.contains(lemma))
+		for (String lemma : list) {
+			if (!stopWordsList.contains(lemma))
 				str += lemma + " ";
 		}
 		return str.trim();
@@ -70,7 +70,7 @@ public class SourceProcessor {
 	private HashMap<String, String[]> readFile(File filesName) {
 		String title = "";
 		String content = "";
-		String categories ="";
+		String categories = "";
 		HashMap<String, String[]> pages = new HashMap<>();
 		try (Scanner scanner = new Scanner(filesName)) {
 			while (scanner.hasNextLine()) {
@@ -81,19 +81,19 @@ public class SourceProcessor {
 					c[1] = content;
 					pages.put(title, c);
 					title = str.replaceAll("\\[tpl].*?\\[/tpl]", "").replaceAll("\\]", "").replaceAll("\\[", "").trim();
-					categories="";
+					categories = "";
 					content = "";
 				} else {
 					String temp = str.replaceAll("\\[tpl].*?\\[/tpl]", "").replaceAll("[^ a-zA-Z\\d]", " ").trim();
-					if(!temp.equals("")) {
-						Sentence stc = new Sentence(temp);					
+					if (!temp.equals("")) {
+						Sentence stc = new Sentence(temp);
 						String lemma = removeStopWords(stc.lemmas());
-						if(temp.startsWith("CATEGORIES:"))
+						if (temp.startsWith("CATEGORIES:"))
 							categories = lemma;
 						else
 							content += lemma;
 					}
-					
+
 				}
 			}
 			scanner.close();
