@@ -141,7 +141,7 @@ public class QueryEngine {
 	}
 
 	public static void main(String[] args) {
-		isGrad = args[1].equals("1") ? true : false;
+		isGrad = args[0].equals("1") ? true : false;
 		QueryEngine engine = new QueryEngine("wiki", "question");
 
 		try {
